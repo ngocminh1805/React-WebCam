@@ -1,6 +1,5 @@
 import * as React from "react";
 import Webcam from "react-webcam";
-import { PreProcessedFileInfo } from "typescript";
 import "./webcam.css";
 
 interface Props {}
@@ -9,6 +8,7 @@ interface State {
   tab: number;
   recording: boolean;
   recordedChunks: any;
+  guiId: string;
 }
 
 class WebCam extends React.PureComponent<Props, State> {
@@ -19,8 +19,15 @@ class WebCam extends React.PureComponent<Props, State> {
       tab: 0,
       recording: false,
       recordedChunks: [],
+      guiId: "",
     };
   }
+
+  componentDidMount() {
+    const GUIID = localStorage.getItem("UserInfo_ guiId") || "";
+    this.setState({ guiId: GUIID });
+  }
+
   webcamRef = React.createRef<Webcam>();
   mediaRecorderRef = React.createRef<MediaRecorder>();
   handleClick = () => {
@@ -37,7 +44,8 @@ class WebCam extends React.PureComponent<Props, State> {
       // @ts-ignore
       this.webcamRef.current?.stream,
       {
-        mimeType: "video/webm;codecs=vp8",
+        // mimeType: "video/webm;codecs=h264",
+        mimeType: "video/webm\;codecs=vp9",
       }
     );
     this.mediaRecorderRef.current.addEventListener(
@@ -49,7 +57,7 @@ class WebCam extends React.PureComponent<Props, State> {
 
   /// --------------------------------------------------
   //@ts-ignore
-  handleDataAvailable = ({data}) => {
+  handleDataAvailable = ({ data }) => {
     if (data.size > 0) {
       this.setState({ recordedChunks: this.state.recordedChunks.concat(data) });
     }
@@ -60,19 +68,44 @@ class WebCam extends React.PureComponent<Props, State> {
   onStopRecord = () => {
     this.mediaRecorderRef.current?.stop();
     this.setState({ recording: false });
-    
+    console.log("====================================");
+    console.log("RECORDS_CHUNKS : ", this.state.recordedChunks);
+    console.log("====================================");
+
+    const blob = new Blob(this.state.recordedChunks, {
+      type: "video/mp4",
+    });
+    const url = URL.createObjectURL(blob);
+
+    const file = new File(this.state.recordedChunks, "video.mp4", {
+      type: "video/mp4",
+    });
+
+    console.log('====================================');
+    console.log('Blob :', this.state.recordedChunks);
+    console.log("VIDEO_URL :", url);
+    console.log("FILE_VIEDO :", file);
+    console.log("====================================");
   };
 
   // ----------------
   handleDownload = () => {
-    console.log('====================================');
-    console.log("RECORDS_CHUNKS : ", this.state.recordedChunks);
-    console.log('====================================');
     if (this.state.recordedChunks.length) {
       const blob = new Blob(this.state.recordedChunks, {
         type: "video/mp4",
       });
       const url = URL.createObjectURL(blob);
+
+      const file = new File(this.state.recordedChunks, "video.mp4", {
+        type: "video/mp4",
+      });
+  
+      console.log('====================================');
+      console.log('Blob :', this.state.recordedChunks);
+      console.log("VIDEO_URL :", url);
+      console.log("FILE_VIEDO :", file);
+      console.log("====================================");
+
       const a = document.createElement("a");
       document.body.appendChild(a);
       // @ts-ignore
@@ -95,7 +128,7 @@ class WebCam extends React.PureComponent<Props, State> {
       );
     } else {
       return (
-        <button className="camera_button" onClick={this.onStartRecord}>
+        <button className="camera_button" onClick={this.captureVideo}>
           start record
         </button>
       );
@@ -114,7 +147,18 @@ class WebCam extends React.PureComponent<Props, State> {
     }
   };
 
+  // ---------------------- Quay video --------------------------
+
+  captureVideo = () => {
+    this.onStartRecord();
+    setTimeout(this.onStopRecord, 3500);
+    // this.handleDownload();
+  };
+
   render() {
+    console.log("====================================");
+    console.log("GUIID :", this.state.guiId);
+    console.log("====================================");
     return (
       <div className="webcam_ctn">
         <Webcam
@@ -131,7 +175,7 @@ class WebCam extends React.PureComponent<Props, State> {
           {this.renderButton()}
           {this.renderDowloadBtn()}
         </div>
-        <img src = {this.state.screenshot}/>
+        <img src={this.state.screenshot} />
       </div>
     );
   }
